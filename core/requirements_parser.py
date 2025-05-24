@@ -6,43 +6,55 @@ from typing import Optional, List
 
 from core.requirements import ProjectRequirements, PowerSupplyRequirements
 
+def _prompt_for_float_input(prompt_message: str, is_mandatory: bool = False) -> Optional[float]:
+    """
+    Helper function to prompt the user for a float input.
+
+    Args:
+        prompt_message (str): The message to display to the user.
+        is_mandatory (bool): If True, the loop continues until a valid float is entered.
+                             If False, an empty input is accepted as None.
+
+    Returns:
+        Optional[float]: The float value entered by the user, or None if input is empty
+                         and not mandatory.
+    """
+    while True:
+        user_input = input(prompt_message).strip()
+        if not user_input:  # Empty input
+            if is_mandatory:
+                print("This field is mandatory. Please enter a value.")
+                continue
+            else:
+                return None
+        try:
+            return float(user_input)
+        except ValueError:
+            print("Invalid input. Please enter a valid number (e.g., 10.5) or leave blank if optional.")
+            # Loop continues for both mandatory and optional if input is provided but invalid
+
 def prompt_for_project_requirements() -> ProjectRequirements:
     """
     Prompts the user for overall project requirements and returns a ProjectRequirements instance.
-
-    Handles potential ValueError for numeric inputs, allowing optional fields to remain None
-    if input is empty or invalid after a warning.
     """
-    project_name = input("Enter project name: ").strip()
-    if not project_name:
-        print("Project name cannot be empty.")
-        # For a real CLI, might loop until valid input or allow quitting
-        return ProjectRequirements(project_name="Default Project")
+    while True:
+        project_name = input("Enter project name: ").strip()
+        if project_name:
+            break
+        print("Project name cannot be empty. Please try again.")
 
-
-    max_length_mm: Optional[float] = None
-    try:
-        length_str = input("Enter maximum PCB length in mm (optional, press Enter to skip): ").strip()
-        if length_str:
-            max_length_mm = float(length_str)
-    except ValueError:
-        print("Invalid input for length. Setting to None.")
-
-    max_width_mm: Optional[float] = None
-    try:
-        width_str = input("Enter maximum PCB width in mm (optional, press Enter to skip): ").strip()
-        if width_str:
-            max_width_mm = float(width_str)
-    except ValueError:
-        print("Invalid input for width. Setting to None.")
-
-    target_cost_usd: Optional[float] = None
-    try:
-        cost_str = input("Enter target manufacturing cost in USD (optional, press Enter to skip): ").strip()
-        if cost_str:
-            target_cost_usd = float(cost_str)
-    except ValueError:
-        print("Invalid input for cost. Setting to None.")
+    max_length_mm = _prompt_for_float_input(
+        "Enter maximum PCB length in mm (optional, press Enter to skip): ",
+        is_mandatory=False
+    )
+    max_width_mm = _prompt_for_float_input(
+        "Enter maximum PCB width in mm (optional, press Enter to skip): ",
+        is_mandatory=False
+    )
+    target_cost_usd = _prompt_for_float_input(
+        "Enter target manufacturing cost in USD (optional, press Enter to skip): ",
+        is_mandatory=False
+    )
 
     return ProjectRequirements(
         project_name=project_name,
@@ -54,39 +66,27 @@ def prompt_for_project_requirements() -> ProjectRequirements:
 def prompt_for_power_supply_requirements() -> Optional[PowerSupplyRequirements]:
     """
     Prompts the user for specific power supply block requirements and
-    returns a PowerSupplyRequirements instance.
-
-    Handles potential ValueError for numeric inputs. If critical numeric inputs
-    are invalid, this function might return None or raise an error after printing a message.
+    returns a PowerSupplyRequirements instance, or None if critical info is missing.
     """
-    block_name = input("Enter power supply block name (e.g., 'Main 5V Rail'): ").strip()
-    if not block_name:
-        print("Power supply block name cannot be empty.")
-        return None # Or re-prompt in a loop
+    while True:
+        block_name = input("Enter power supply block name (e.g., 'Main 5V Rail'): ").strip()
+        if block_name:
+            break
+        print("Power supply block name cannot be empty. Please try again.")
 
-    input_voltage_v: Optional[float] = None
-    try:
-        iv_str = input("Enter input voltage in Volts (e.g., 12.0): ").strip()
-        input_voltage_v = float(iv_str)
-    except ValueError:
-        print("Invalid input for input voltage. This field is mandatory.")
-        return None
-
-    output_voltage_v: Optional[float] = None
-    try:
-        ov_str = input("Enter desired output voltage in Volts (e.g., 5.0): ").strip()
-        output_voltage_v = float(ov_str)
-    except ValueError:
-        print("Invalid input for output voltage. This field is mandatory.")
-        return None
-
-    max_output_current_a: Optional[float] = None
-    try:
-        oc_str = input("Enter maximum output current in Amperes (e.g., 1.5): ").strip()
-        max_output_current_a = float(oc_str)
-    except ValueError:
-        print("Invalid input for maximum output current. This field is mandatory.")
-        return None
+    # These calls will loop until valid float input is received because is_mandatory=True
+    input_voltage_v = _prompt_for_float_input(
+        "Enter input voltage in Volts (e.g., 12.0): ",
+        is_mandatory=True
+    )
+    output_voltage_v = _prompt_for_float_input(
+        "Enter desired output voltage in Volts (e.g., 5.0): ",
+        is_mandatory=True
+    )
+    max_output_current_a = _prompt_for_float_input(
+        "Enter maximum output current in Amperes (e.g., 1.5): ",
+        is_mandatory=True
+    )
 
     protection_features_str = input(
         "Enter desired protection features, comma-separated (optional, e.g., short-circuit,over-voltage): "
@@ -96,16 +96,14 @@ def prompt_for_power_supply_requirements() -> Optional[PowerSupplyRequirements]:
     if protection_features_str:
         protection_features = [feature.strip() for feature in protection_features_str.split(',')]
 
-    # Ensure mandatory fields were successfully converted
-    if input_voltage_v is None or output_voltage_v is None or max_output_current_a is None:
-        print("Failed to create power supply requirements due to missing mandatory numeric values.")
-        return None
-
+    # The helper function _prompt_for_float_input with is_mandatory=True ensures these are floats.
+    # So, direct assignment is safe here. The function won't proceed past those prompts
+    # unless valid floats are entered.
     return PowerSupplyRequirements(
         block_name=block_name,
-        input_voltage_v=input_voltage_v,
-        output_voltage_v=output_voltage_v,
-        max_output_current_a=max_output_current_a,
+        input_voltage_v=input_voltage_v, # type: ignore
+        output_voltage_v=output_voltage_v, # type: ignore
+        max_output_current_a=max_output_current_a, # type: ignore
         protection_features=protection_features
     )
 

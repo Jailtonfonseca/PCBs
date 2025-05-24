@@ -120,10 +120,12 @@ class TestRequirementsParser(unittest.TestCase):
             "75",                      # max_width_mm
             ""                         # target_cost_usd (empty)
         ]
-        # Consider capturing print output if necessary, but focusing on return value
+        # _prompt_for_float_input will re-prompt on "abc".
+        # If the next input for that prompt is empty, it returns None.
+        # So, the sequence is: "abc" (invalid) -> "" (valid for optional, results in None)
         req = prompt_for_project_requirements()
         self.assertEqual(req.project_name, "Project Invalid Numeric")
-        self.assertIsNone(req.max_length_mm) # Should be None due to invalid input
+        self.assertIsNone(req.max_length_mm)
         self.assertEqual(req.max_width_mm, 75.0)
         self.assertIsNone(req.target_cost_usd)
 
@@ -169,40 +171,50 @@ class TestRequirementsParser(unittest.TestCase):
         mock_input.side_effect = [
             "Faulty Supply", # block_name
             "abc",           # input_voltage_v (invalid)
+            "12.0",          # input_voltage_v (valid after re-prompt)
             "5.0",           # output_voltage_v
-            "1.0"            # max_output_current_a
-            # protection_features is not reached if a mandatory field fails early
+            "1.0",           # max_output_current_a
+            ""               # protection_features
         ]
         psu = prompt_for_power_supply_requirements()
-        self.assertIsNone(psu) # Function should return None
+        self.assertIsNotNone(psu) # Function should now succeed
+        self.assertEqual(psu.block_name, "Faulty Supply")
+        self.assertEqual(psu.input_voltage_v, 12.0) # Should be the valid re-prompted value
+        self.assertEqual(psu.output_voltage_v, 5.0)
+        self.assertEqual(psu.max_output_current_a, 1.0)
 
     @patch('builtins.input')
     def test_prompt_for_project_requirements_empty_name(self, mock_input):
-        """Test parsing with an empty project name."""
+        """Test re-prompting for an empty project name."""
         mock_input.side_effect = [
-            "",       # project_name (empty)
-            "100",
-            "100",
-            "10"
+            "",                     # project_name (empty, first attempt)
+            "Valid Project Name",   # project_name (valid, second attempt)
+            "100",                  # max_length_mm
+            "100",                  # max_width_mm
+            "10"                    # target_cost_usd
         ]
-        # The current implementation defaults to "Default Project" if name is empty
-        # and prints a message. We test the default name.
         req = prompt_for_project_requirements()
-        self.assertEqual(req.project_name, "Default Project")
+        self.assertEqual(req.project_name, "Valid Project Name")
+        # Check if input was called at least twice for the name (initial prompt + re-prompt)
+        # This is a bit fragile, depends on the exact number of input() calls for other fields.
+        # A more robust way would be to check call_args_list for specific prompts if needed.
+        self.assertGreaterEqual(mock_input.call_count, 5) # name, name, len, width, cost
 
     @patch('builtins.input')
     def test_prompt_for_power_supply_requirements_empty_block_name(self, mock_input):
-        """Test parsing with an empty block name for power supply."""
+        """Test re-prompting for an empty block name for power supply."""
         mock_input.side_effect = [
-            "",       # block_name (empty)
-            "12",
-            "5",
-            "1",
-            ""
+            "",                  # block_name (empty, first attempt)
+            "Valid Block Name",  # block_name (valid, second attempt)
+            "12.0",              # input_voltage_v
+            "5.0",               # output_voltage_v
+            "1.0",               # max_output_current_a
+            ""                   # protection_features
         ]
-        # The current implementation returns None if block_name is empty.
         psu = prompt_for_power_supply_requirements()
-        self.assertIsNone(psu)
+        self.assertIsNotNone(psu)
+        self.assertEqual(psu.block_name, "Valid Block Name")
+        self.assertEqual(psu.input_voltage_v, 12.0)
 
 if __name__ == '__main__':
     unittest.main()

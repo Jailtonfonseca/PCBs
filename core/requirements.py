@@ -30,14 +30,14 @@ class PowerSupplyRequirements:
         input_voltage_v (float): Input voltage to the power supply in Volts.
         output_voltage_v (float): Desired output voltage from the power supply in Volts.
         max_output_current_a (float): Maximum output current the power supply must provide in Amperes.
-        protection_features (Optional[List[str]]): List of desired protection features.
+        protection_features (List[str]): List of desired protection features (defaults to an empty list).
             Examples: ["short-circuit", "over-voltage", "thermal-shutdown", "reverse-polarity"].
     """
     block_name: str
     input_voltage_v: float
     output_voltage_v: float
     max_output_current_a: float
-    protection_features: Optional[List[str]] = field(default_factory=list)
+    protection_features: List[str] = field(default_factory=list)
 
 if __name__ == '__main__':
     # Example Usage
