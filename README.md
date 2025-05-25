@@ -8,26 +8,30 @@ Our target audience includes electronic engineers, advanced hobbyists, hardware 
 
 This project is currently in a **very early, foundational stage of development**.
 
-The existing functionality is limited to defining basic project-level and power supply block requirements through a command-line interface. The core Python data structures for capturing these initial requirements have been implemented.
+The existing functionality includes defining basic project-level and power supply block requirements. This can be done either via a command-line interface (CLI) or a new graphical user interface (GUI). The core Python data structures for capturing these initial requirements, along with basic GUI and CLI input mechanisms, have been implemented.
 
 ## Modules Implemented (So Far)
 
 *   `core/requirements.py`: Defines Python dataclasses for representing project and power supply requirements.
 *   `core/requirements_parser.py`: Provides a command-line interface (CLI) to interactively input these requirements.
+*   `gui/app.py`: Provides a graphical user interface (GUI) using Tkinter for inputting project and power supply requirements.
 *   `tests/test_requirements.py`: Contains unit tests for the requirements data structures and the CLI parser.
+*   `tests/test_gui_app.py`: Contains unit tests for the GUI application logic.
 
 ## Getting Started / Usage
 
-To test the current Proof-of-Concept (PoC) for requirements input:
+### Running the Application
+To run the graphical user interface for requirements input:
+1. Ensure you have Python 3.8+ installed (Tkinter is usually included).
+2. Clone the repository (if applicable).
+3. Navigate to the root directory of the project.
+4. Execute the following command:
+   ```bash
+   python gui/app.py
+   ```
+This will launch the GUI, allowing you to input project and power supply block requirements.
 
-1.  Ensure you have Python 3.8+ installed on your system.
-2.  Clone this repository to your local machine (if you haven't already).
-3.  Navigate to the root directory of the cloned project using your terminal.
-4.  To run the requirements input script, execute the following command:
-    ```bash
-    python core/requirements_parser.py
-    ```
-5.  This script will prompt you to enter details for overall project requirements and then allow you to define one or more power supply blocks.
+(The original CLI for requirements input can still be run using `python core/requirements_parser.py` if preferred.)
 
 ## Future Goals (High Level)
 
