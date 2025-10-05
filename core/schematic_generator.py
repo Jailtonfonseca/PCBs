@@ -25,19 +25,29 @@ class SchematicGenerator:
     """
     Generates a schematic from a set of requirements.
     """
-    def generate(self, requirements: PowerSupplyRequirements) -> Schematic or None:
+    def generate(self, requirements: PowerSupplyRequirements) -> (Schematic or None, str or None):
         """
         Generates a schematic for the given power supply requirements.
 
-        For this proof-of-concept, it only handles a specific case:
-        generating a 5V output from a >7V input using an LM7805.
+        Returns a tuple: (schematic, error_message).
+        On success, error_message is None.
+        On failure, schematic is None.
         """
-        # This is a very basic rule engine. A real system would have a more complex one.
+        # Rule 0: Basic physical validation
+        if requirements.input_voltage_v <= requirements.output_voltage_v:
+            error = "Input voltage must be greater than output voltage."
+            print(f"Validation Error: {error}")
+            return None, error
+
+        # Rule 1: LM7805 5V regulator
         if requirements.output_voltage_v == 5.0 and requirements.input_voltage_v >= 7.0:
-            return self._generate_lm7805_circuit(requirements)
-        else:
-            print(f"Warning: No generator rule found for the specified requirements: {requirements.output_voltage_v}V output.")
-            return None
+            schematic = self._generate_lm7805_circuit(requirements)
+            return schematic, None
+
+        # Default case if no specific rule matches
+        error = f"No generator rule found for the specified requirements: {requirements.output_voltage_v}V output."
+        print(f"Warning: {error}")
+        return None, error
 
     def _generate_lm7805_circuit(self, requirements: PowerSupplyRequirements) -> Schematic:
         """

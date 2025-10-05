@@ -51,7 +51,14 @@
         {% else %}
             <div class="error">
                 <h2>Generation Failed</h2>
-                <p>Could not generate a schematic for the specified requirements. The current proof-of-concept can only generate a schematic for a 5V output from an input voltage of 7V or higher.</p>
+                <p>
+                    {% if error %}
+                        <strong>Reason:</strong> {{ error }}
+                    {% else %}
+                        An unknown error occurred.
+                    {% endif %}
+                </p>
+                <p>Please check your input values and try again. The current proof-of-concept can only generate a schematic for a 5V output from an input voltage of 7V or higher.</p>
             </div>
         {% endif %}
 

@@ -37,14 +37,15 @@ def generate_schematic():
         )
 
         # Generate the schematic
-        schematic = generator.generate(requirements)
+        schematic, error = generator.generate(requirements)
 
-        # Render the result page
-        return render_template('schematic.html', schematic=schematic)
+        # Render the result page with both the schematic and any potential error
+        return render_template('schematic.html', schematic=schematic, error=error)
 
     except (ValueError, KeyError) as e:
         # Handle cases where form data is missing or not a valid number
-        return f"Error: Invalid form data provided. {e}", 400
+        error_message = f"Invalid or missing form data: {e}"
+        return render_template('schematic.html', schematic=None, error=error_message)
 
 
 if __name__ == '__main__':

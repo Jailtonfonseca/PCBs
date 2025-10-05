@@ -53,14 +53,14 @@ def test_generate_schematic_with_unsupported_data(client):
     })
     assert response.status_code == 200
     assert b"Generation Failed" in response.data
-    assert b"Could not generate a schematic" in response.data
+    # Check for the specific error reason now displayed in the template
+    assert b"Reason:" in response.data
+    assert b"No generator rule found" in response.data
 
 def test_generate_schematic_with_invalid_data(client):
     """
     Test the /generate endpoint with invalid or missing form data.
-    Note: The current implementation relies on browser-side 'required' attributes.
-    This test checks the server's handling if such a request gets through.
-    The current app returns a 400 error.
+    The app should now render the error page gracefully with a 200 status.
     """
     # Missing 'max_current'
     response = client.post('/generate', data={
@@ -68,5 +68,6 @@ def test_generate_schematic_with_invalid_data(client):
         'input_voltage': '12.0',
         'output_voltage': '5.0'
     })
-    assert response.status_code == 400
-    assert b"Error: Invalid form data provided" in response.data
+    assert response.status_code == 200
+    assert b"Generation Failed" in response.data
+    assert b"Invalid or missing form data" in response.data
