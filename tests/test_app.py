@@ -4,10 +4,7 @@ from app import app as flask_app
 @pytest.fixture
 def app():
     """Create and configure a new app instance for each test."""
-    # The app is already created in app.py, we just need to configure it for testing
-    flask_app.config.update({
-        "TESTING": True,
-    })
+    flask_app.config.update({"TESTING": True})
     yield flask_app
 
 @pytest.fixture
@@ -16,58 +13,40 @@ def client(app):
     return app.test_client()
 
 def test_index_page_loads(client):
-    """Test that the index page loads correctly."""
+    """Test that the index page loads correctly with the new UI."""
     response = client.get('/')
     assert response.status_code == 200
-    assert b"Define your power supply requirements" in response.data
+    assert b"Describe the circuit you want to design" in response.data
+    assert b"Your Request:" in response.data
 
-def test_generate_schematic_with_valid_data(client):
+def test_generate_design_with_valid_request(client):
     """
-    Test the /generate endpoint with valid form data that should result
-    in a successful schematic generation.
+    Test the /generate endpoint with a valid user request that the AI can handle.
     """
     response = client.post('/generate', data={
-        'block_name': 'Test 5V Supply',
-        'input_voltage': '12.0',
-        'output_voltage': '5.0',
-        'max_current': '1.0'
+        'user_request': 'I need a 5V power supply.'
     })
     assert response.status_code == 200
-    assert b"Generated Schematic" in response.data
-    # Check for component and net names in the response
+    # Check for the new sections in the results page
+    assert b"Design Result" in response.data
+    assert b"Your Request" in response.data
+    assert b"AI-Generated Plan" in response.data
+    assert b"Final Schematic" in response.data
+
+    # Check for plan and schematic content
+    assert b"add_regulator_5v" in response.data
     assert b"U1" in response.data
     assert b"LM7805" in response.data
-    assert b"VOUT_5.0V" in response.data
-    assert b"GND" in response.data
 
-def test_generate_schematic_with_unsupported_data(client):
+def test_generate_design_with_unknown_request(client):
     """
-    Test the /generate endpoint with valid form data but for requirements
-    that the generator cannot handle (e.g., 3.3V).
+    Test the /generate endpoint with a user request that the AI cannot handle.
     """
     response = client.post('/generate', data={
-        'block_name': 'Test 3.3V Supply',
-        'input_voltage': '12.0',
-        'output_voltage': '3.3',
-        'max_current': '1.0'
+        'user_request': 'Build me a spaceship.'
     })
     assert response.status_code == 200
-    assert b"Generation Failed" in response.data
-    # Check for the specific error reason now displayed in the template
-    assert b"Reason:" in response.data
-    assert b"No generator rule found" in response.data
-
-def test_generate_schematic_with_invalid_data(client):
-    """
-    Test the /generate endpoint with invalid or missing form data.
-    The app should now render the error page gracefully with a 200 status.
-    """
-    # Missing 'max_current'
-    response = client.post('/generate', data={
-        'block_name': 'Test 5V Supply',
-        'input_voltage': '12.0',
-        'output_voltage': '5.0'
-    })
-    assert response.status_code == 200
-    assert b"Generation Failed" in response.data
-    assert b"Invalid or missing form data" in response.data
+    assert b"Design Failed" in response.data
+    assert b"The AI could not generate a design plan" in response.data
+    # Ensure no schematic content is displayed
+    assert b"Final Schematic" not in response.data
