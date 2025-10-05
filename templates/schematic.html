@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCBGeniusAI - Generated Schematic</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; padding: 2em; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #4a4a4a; }
+        .schematic { margin-top: 2em; }
+        .component-list, .net-list { list-style-type: none; padding: 0; }
+        .component-list li, .net-list li { background-color: #f9f9f9; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .ref-des { font-weight: bold; color: #0056b3; }
+        .net-name { font-weight: bold; color: #00796b; }
+        .connections { font-style: italic; color: #555; }
+        .error { color: #d9534f; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generated Schematic</h1>
+
+        {% if schematic %}
+            <div class="schematic">
+                <h2>Components</h2>
+                <ul class="component-list">
+                    {% for comp in schematic.components %}
+                        <li>
+                            <span class="ref-des">{{ comp.reference_designator }}</span>: {{ comp.part_number }} ({{ comp.description }})
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <h2>Nets</h2>
+                <ul class="net-list">
+                    {% for net in schematic.nets %}
+                        <li>
+                            <span class="net-name">{{ net.name }}</span> connects:
+                            <span class="connections">
+                                {% for pin in net.pins %}
+                                    {{ pin.component_ref_des }}.{{ pin.pin_name }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% else %}
+            <div class="error">
+                <h2>Generation Failed</h2>
+                <p>Could not generate a schematic for the specified requirements. The current proof-of-concept can only generate a schematic for a 5V output from an input voltage of 7V or higher.</p>
+            </div>
+        {% endif %}
+
+        <p><a href="/">Generate another schematic</a></p>
+    </div>
+</body>
+</html>

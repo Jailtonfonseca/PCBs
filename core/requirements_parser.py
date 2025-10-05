@@ -109,11 +109,36 @@ def prompt_for_power_supply_requirements() -> Optional[PowerSupplyRequirements]:
         protection_features=protection_features
     )
 
+from core.schematic import Schematic
+from core.schematic_generator import SchematicGenerator
+
+
+def display_schematic(schematic: Schematic):
+    """Prints a human-readable summary of the schematic to the console."""
+    if not schematic:
+        print("No schematic to display.")
+        return
+
+    print("\n--- Generated Schematic ---")
+    print("Components:")
+    for comp in schematic.components:
+        print(f"  - {comp.reference_designator}: {comp.part_number} ({comp.description})")
+
+    print("\nNets:")
+    for net in schematic.nets:
+        connections = ", ".join([f"{pin.component_ref_des}.{pin.pin_name}" for pin in net.pins])
+        print(f"  - {net.name}: connects [{connections}]")
+    print("-------------------------\n")
+
+
 if __name__ == '__main__':
     print("--- Project Requirements Input ---")
     project_reqs = prompt_for_project_requirements()
     print("\n--- Created Project Requirements ---")
     print(project_reqs)
+
+    # Instantiate the generator
+    generator = SchematicGenerator()
 
     print("\n--- Power Supply Requirements Input ---")
     # Example of adding multiple power supplies
@@ -125,11 +150,19 @@ if __name__ == '__main__':
         psu_req = prompt_for_power_supply_requirements()
         if psu_req:
             power_supplies.append(psu_req)
+            print(f"\nAttempting to generate schematic for '{psu_req.block_name}'...")
+            # Generate the schematic for the newly added power supply
+            generated_schematic = generator.generate(psu_req)
+            if generated_schematic:
+                print("Schematic generated successfully!")
+                display_schematic(generated_schematic)
+            else:
+                print("Could not generate a schematic for the specified requirements.")
         else:
             print("Skipping invalid power supply block.")
 
     if power_supplies:
-        print("\n--- Created Power Supply Requirements ---")
+        print("\n--- Summary: All Created Power Supply Requirements ---")
         for psu in power_supplies:
             print(psu)
     else:
