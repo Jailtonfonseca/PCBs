@@ -19,8 +19,9 @@ def test_generate_schematic_for_valid_5v_requirements(generator):
         max_output_current_a=1.0
     )
 
-    schematic = generator.generate(requirements)
+    schematic, error = generator.generate(requirements)
 
+    assert error is None
     assert schematic is not None
     assert isinstance(schematic, Schematic)
 
@@ -61,9 +62,31 @@ def test_generate_schematic_for_unsupported_voltage(generator):
         max_output_current_a=1.0
     )
 
-    schematic = generator.generate(requirements)
+    schematic, error = generator.generate(requirements)
 
     assert schematic is None
+    assert error is not None
+    assert "No generator rule found" in error
+
+def test_generate_schematic_with_input_less_than_output(generator):
+    """
+    Tests that the generator fails with a specific error when the input voltage
+    is less than the output voltage.
+    """
+    requirements = PowerSupplyRequirements(
+        block_name="Invalid Voltage",
+        input_voltage_v=4.0,
+        output_voltage_v=5.0,
+        max_output_current_a=1.0
+    )
+
+    # This test will fail with a TypeError until the generator is updated
+    # to return a tuple (schematic, error).
+    schematic, error = generator.generate(requirements)
+
+    assert schematic is None
+    assert error is not None
+    assert "Input voltage must be greater than output voltage" in error
 
 def test_generate_schematic_for_insufficient_input_voltage(generator):
     """
@@ -76,9 +99,11 @@ def test_generate_schematic_for_insufficient_input_voltage(generator):
         max_output_current_a=1.0
     )
 
-    schematic = generator.generate(requirements)
+    schematic, error = generator.generate(requirements)
 
     assert schematic is None
+    assert error is not None
+    assert "No generator rule found" in error
 
 def test_gnd_net_is_shared_correctly(generator):
     """
@@ -91,7 +116,8 @@ def test_gnd_net_is_shared_correctly(generator):
         max_output_current_a=0.5
     )
 
-    schematic = generator.generate(requirements)
+    schematic, error = generator.generate(requirements)
+    assert error is None
     assert schematic is not None
 
     gnd_net = schematic.find_net("GND")
