@@ -1,51 +1,47 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request
 
+from core.orchestrator import DesignOrchestrator
 from core.requirements import PowerSupplyRequirements
-from core.schematic_generator import SchematicGenerator
 
 # Initialize the Flask application
 app = Flask(__name__)
 
-# Instantiate the schematic generator
-generator = SchematicGenerator()
+# Instantiate the Design Orchestrator, which is now the main entry point
+orchestrator = DesignOrchestrator()
 
 @app.route('/')
 def index():
     """
-    Serves the main page with the input form.
+    Serves the main page with a simple text area for the user's request.
     """
     return render_template('index.html')
 
 @app.route('/generate', methods=['POST'])
 def generate_schematic():
     """
-    Handles the form submission, generates the schematic, and displays the result.
+    Handles the user's request, orchestrates the design, and displays the result.
     """
-    try:
-        # Extract form data
-        block_name = request.form['block_name']
-        input_voltage = float(request.form['input_voltage'])
-        output_voltage = float(request.form['output_voltage'])
-        max_current = float(request.form['max_current'])
+    user_request = request.form['user_request']
 
-        # Create requirements object
-        requirements = PowerSupplyRequirements(
-            block_name=block_name,
-            input_voltage_v=input_voltage,
-            output_voltage_v=output_voltage,
-            max_output_current_a=max_current
-        )
+    # For this PoC, we still need to provide some hard-coded detailed requirements
+    # until the AI can extract these from the user_request itself.
+    # The AI's plan will determine which components are used.
+    # These values are used for net naming and component selection logic.
+    requirements = PowerSupplyRequirements(
+        block_name="AI Generated Power Supply",
+        input_voltage_v=12.0,
+        output_voltage_v=5.0,
+        max_output_current_a=1.0
+    )
 
-        # Generate the schematic
-        schematic, error = generator.generate(requirements)
+    # Use the orchestrator to create the schematic from the high-level request
+    schematic, design_plan = orchestrator.create_schematic_from_request(
+        user_request,
+        requirements
+    )
 
-        # Render the result page with both the schematic and any potential error
-        return render_template('schematic.html', schematic=schematic, error=error)
-
-    except (ValueError, KeyError) as e:
-        # Handle cases where form data is missing or not a valid number
-        error_message = f"Invalid or missing form data: {e}"
-        return render_template('schematic.html', schematic=None, error=error_message)
+    # Render the result page, passing the schematic and the AI's plan
+    return render_template('schematic.html', schematic=schematic, plan=design_plan, user_request=user_request)
 
 
 if __name__ == '__main__':

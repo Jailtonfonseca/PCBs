@@ -1,133 +1,87 @@
 import pytest
 from core.requirements import PowerSupplyRequirements
 from core.schematic_generator import SchematicGenerator
-from core.schematic import Schematic, Component, Net
+from core.schematic import Schematic
 
 @pytest.fixture
 def generator():
     """Provides a SchematicGenerator instance for tests."""
     return SchematicGenerator()
 
-def test_generate_schematic_for_valid_5v_requirements(generator):
-    """
-    Tests that the generator successfully creates a schematic for valid 5V requirements.
-    """
-    requirements = PowerSupplyRequirements(
+@pytest.fixture
+def empty_schematic():
+    """Provides a fresh, empty Schematic instance for each test."""
+    return Schematic()
+
+@pytest.fixture
+def requirements():
+    """Provides a standard set of PowerSupplyRequirements."""
+    return PowerSupplyRequirements(
         block_name="Test 5V Supply",
         input_voltage_v=12.0,
         output_voltage_v=5.0,
         max_output_current_a=1.0
     )
 
-    schematic, error = generator.generate(requirements)
+def test_add_lm7805_regulator(generator, empty_schematic, requirements):
+    """Tests that the 'add_regulator_5v' command adds a regulator and connects its pins."""
+    schematic = empty_schematic
+    generator.execute_command("add_regulator_5v", schematic, requirements)
 
-    assert error is None
-    assert schematic is not None
-    assert isinstance(schematic, Schematic)
+    assert len(schematic.components) == 1
+    u1 = schematic.components[0]
+    assert u1.part_number == "LM7805"
 
-    # Check for correct number of components and nets
-    assert len(schematic.components) == 3
-    assert len(schematic.nets) == 3
-
-    # Check that the main components exist
-    ref_des = [c.reference_designator for c in schematic.components]
-    assert "U1" in ref_des
-    assert "C1" in ref_des
-    assert "C2" in ref_des
-
-    # Check that the main nets exist
-    net_names = [n.name for n in schematic.nets]
-    assert "VIN_12.0V" in net_names
-    assert "VOUT_5.0V" in net_names
-    assert "GND" in net_names
-
-    # Spot-check a connection
+    vin_net = schematic.find_net("VIN_12.0V")
     vout_net = schematic.find_net("VOUT_5.0V")
-    assert vout_net is not None
-
-    u1 = next((c for c in schematic.components if c.reference_designator == "U1"), None)
-    assert u1 is not None
-
-    u1_out_pin = u1.get_pin("OUT")
-    assert u1_out_pin in vout_net.pins
-
-def test_generate_schematic_for_unsupported_voltage(generator):
-    """
-    Tests that the generator returns None for requirements it cannot fulfill (e.g., 3.3V).
-    """
-    requirements = PowerSupplyRequirements(
-        block_name="Test 3.3V Supply",
-        input_voltage_v=12.0,
-        output_voltage_v=3.3,
-        max_output_current_a=1.0
-    )
-
-    schematic, error = generator.generate(requirements)
-
-    assert schematic is None
-    assert error is not None
-    assert "No generator rule found" in error
-
-def test_generate_schematic_with_input_less_than_output(generator):
-    """
-    Tests that the generator fails with a specific error when the input voltage
-    is less than the output voltage.
-    """
-    requirements = PowerSupplyRequirements(
-        block_name="Invalid Voltage",
-        input_voltage_v=4.0,
-        output_voltage_v=5.0,
-        max_output_current_a=1.0
-    )
-
-    # This test will fail with a TypeError until the generator is updated
-    # to return a tuple (schematic, error).
-    schematic, error = generator.generate(requirements)
-
-    assert schematic is None
-    assert error is not None
-    assert "Input voltage must be greater than output voltage" in error
-
-def test_generate_schematic_for_insufficient_input_voltage(generator):
-    """
-    Tests that the generator returns None when the input voltage is too low for the 5V rule.
-    """
-    requirements = PowerSupplyRequirements(
-        block_name="Test Low Vin Supply",
-        input_voltage_v=6.0, # LM7805 requires >= 7V
-        output_voltage_v=5.0,
-        max_output_current_a=1.0
-    )
-
-    schematic, error = generator.generate(requirements)
-
-    assert schematic is None
-    assert error is not None
-    assert "No generator rule found" in error
-
-def test_gnd_net_is_shared_correctly(generator):
-    """
-    Tests that all components that should connect to GND are on the same GND net.
-    """
-    requirements = PowerSupplyRequirements(
-        block_name="Test 5V Supply",
-        input_voltage_v=9.0,
-        output_voltage_v=5.0,
-        max_output_current_a=0.5
-    )
-
-    schematic, error = generator.generate(requirements)
-    assert error is None
-    assert schematic is not None
-
     gnd_net = schematic.find_net("GND")
+
+    assert vin_net is not None
+    assert vout_net is not None
     assert gnd_net is not None
 
-    # GND net should have 3 connections in the LM7805 circuit
-    assert len(gnd_net.pins) == 3
+    assert u1.get_pin("IN") in vin_net.pins
+    assert u1.get_pin("OUT") in vout_net.pins
+    assert u1.get_pin("GND") in gnd_net.pins
 
-    # Check that U1, C1, and C2 are all connected to the GND net
-    connected_components = {pin.component_ref_des for pin in gnd_net.pins}
-    assert "U1" in connected_components
-    assert "C1" in connected_components
-    assert "C2" in connected_components
+def test_add_input_capacitor(generator, empty_schematic, requirements):
+    """Tests that the 'add_input_capacitor' command adds a capacitor to the input net."""
+    schematic = empty_schematic
+    generator.execute_command("add_input_capacitor", schematic, requirements)
+
+    assert len(schematic.components) == 1
+    c1 = schematic.components[0]
+    assert c1.part_number == "CAP_10uF"
+
+    vin_net = schematic.find_net("VIN_12.0V")
+    gnd_net = schematic.find_net("GND")
+
+    assert vin_net is not None
+    assert gnd_net is not None
+
+    assert c1.get_pin("1") in vin_net.pins
+    assert c1.get_pin("2") in gnd_net.pins
+
+def test_add_output_capacitor(generator, empty_schematic, requirements):
+    """Tests that the 'add_output_capacitor' command adds a capacitor to the output net."""
+    schematic = empty_schematic
+    generator.execute_command("add_output_capacitor", schematic, requirements)
+
+    assert len(schematic.components) == 1
+    c2 = schematic.components[0]
+    assert c2.part_number == "CAP_0.1uF"
+
+    vout_net = schematic.find_net("VOUT_5.0V")
+    gnd_net = schematic.find_net("GND")
+
+    assert vout_net is not None
+    assert gnd_net is not None
+
+    assert c2.get_pin("1") in vout_net.pins
+    assert c2.get_pin("2") in gnd_net.pins
+
+def test_unknown_command_is_ignored(generator, empty_schematic, requirements):
+    """Tests that an unknown command does not add any components."""
+    schematic = empty_schematic
+    generator.execute_command("make_coffee", schematic, requirements)
+    assert len(schematic.components) == 0
