@@ -44,10 +44,26 @@ Generate a complete set of fabrication files (Gerbers, BOM, PnP) with a single c
 
 PCBGeniusAI is being built on a modern, scalable **microservices architecture**. Each core function (e.g., schematic generation, PCB layout, component database) is an independent service. This design ensures flexibility, resilience, and the ability to scale each part of the system as needed.
 
+```mermaid
+graph TD
+    User([User]) -->|Request| WebUI[Web Interface]
+    WebUI -->|Form Data| Orchestrator[Design Orchestrator]
+
+    subgraph Core Services
+        Orchestrator -->|Get Plan| AIService[AI Strategy Service]
+        Orchestrator -->|Execute Plan| Generator[Schematic Generator]
+    end
+
+    AIService -->|Design Steps| Orchestrator
+    Generator -->|Update Schematic| Orchestrator
+
+    Orchestrator -->|Final Schematic| WebUI
+
+    classDef service fill:#f9f,stroke:#333,stroke-width:2px;
+    class Orchestrator,AIService,Generator service;
+```
 <p align="center">
-  <img src="https://placehold.co/600x400?text=Microservices+Architecture+Diagram" alt="Microservices Architecture Diagram">
-  <br>
-  <em>High-level overview of the microservices architecture.</em>
+  <em>High-level overview of the architecture.</em>
 </p>
 
 ## 🚀 Getting Started
