@@ -110,7 +110,7 @@ def prompt_for_power_supply_requirements() -> Optional[PowerSupplyRequirements]:
     )
 
 from core.schematic import Schematic
-from core.schematic_generator import SchematicGenerator
+from core.orchestrator import DesignOrchestrator
 
 
 def display_schematic(schematic: Schematic):
@@ -137,8 +137,8 @@ if __name__ == '__main__':
     print("\n--- Created Project Requirements ---")
     print(project_reqs)
 
-    # Instantiate the generator
-    generator = SchematicGenerator()
+    # Instantiate the orchestrator
+    orchestrator = DesignOrchestrator()
 
     print("\n--- Power Supply Requirements Input ---")
     # Example of adding multiple power supplies
@@ -151,10 +151,20 @@ if __name__ == '__main__':
         if psu_req:
             power_supplies.append(psu_req)
             print(f"\nAttempting to generate schematic for '{psu_req.block_name}'...")
-            # Generate the schematic for the newly added power supply
-            generated_schematic = generator.generate(psu_req)
+
+            # Synthesize a user request based on the requirements
+            # We strip trailing .0 for cleaner string representation (e.g. 5.0 -> 5)
+            # This helps the simple keyword matcher in AIStrategyService
+            voltage_str = f"{psu_req.output_voltage_v:g}"
+            user_request = f"Design a {voltage_str}V power supply"
+
+            # Generate the schematic for the newly added power supply using the orchestrator
+            generated_schematic, plan = orchestrator.create_schematic_from_request(user_request, psu_req)
+
             if generated_schematic:
                 print("Schematic generated successfully!")
+                if plan:
+                     print(f"AI Plan executed: {plan}")
                 display_schematic(generated_schematic)
             else:
                 print("Could not generate a schematic for the specified requirements.")
